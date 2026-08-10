@@ -1,0 +1,57 @@
+name: Node.js CI/CD Pipeline
+
+# -----------------------------------------------------------------
+# 1. EVENT TRIGGERS
+# Defines what triggers this workflow.
+# -----------------------------------------------------------------
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# -----------------------------------------------------------------
+# 2. JOBS DEFINITION
+# -----------------------------------------------------------------
+jobs:
+  # ---------------------------------------------------------------
+  # JOB 1: Build & Test (CI Phase)
+  # ---------------------------------------------------------------
+  build-and-test:
+    runs-on: ubuntu-latest # Allocates a clean Ubuntu virtual machine
+
+    steps:
+      # Step 1: Clone the repository into the Virtual Machine workspace
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js runtime and configure NPM package caching
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm' # Caches node_modules to speed up future runs
+
+      # Step 3: Install dependencies deterministically
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run test suite
+      - name: Run Automated Test Suite
+        run: npm test
+
+  # ---------------------------------------------------------------
+  # JOB 2: Deployment (CD Phase)
+  # ---------------------------------------------------------------
+  deploy:
+    needs: build-and-test # DEPENDENCY: Job 1 MUST succeed first!
+    runs-on: ubuntu-latest
+    
+    # Conditional execution: Only run if pushing directly to 'main'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Execute Deployment
+        run: |
+          echo "🚀 CI Checks Passed Successfully!"
+          echo "Deploying build artifacts to production server..."
